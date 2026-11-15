@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chuddnjaan - Admin Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header>
+    <div class="logo">
+        <h1>🎬 Chuddnjaan</h1>
+        <p>Admin Control Panel</p>
+    </div>
+
+    <a href="index.html" class="admin-link">Public Website</a>
+</header>
+
+<main>
+
+    <!-- ADMIN LOGIN -->
+    <section id="loginSection" class="admin-section">
+        <div class="login-box">
+            <h2>🔐 Admin Login</h2>
+
+            <form id="loginForm">
+                <input
+                    type="email"
+                    id="adminEmail"
+                    placeholder="Admin Email"
+                    required
+                >
+
+                <input
+                    type="password"
+                    id="adminPassword"
+                    placeholder="Admin Password"
+                    required
+                >
+
+                <button type="submit" class="btn btn-primary">
+                    Login
+                </button>
+            </form>
+
+            <p id="loginMessage" style="margin-top:15px;"></p>
+        </div>
+    </section>
+
+    <!-- ADMIN DASHBOARD -->
+    <section id="dashboardSection" style="display:none;">
+
+        <div class="dashboard-header">
+            <div>
+                <h2>📊 Admin Dashboard</h2>
+                <p>Chuddnjaan Video Management</p>
+            </div>
+
+            <button id="logoutBtn" class="btn btn-danger">
+                Logout
+            </button>
+        </div>
+
+        <!-- STATISTICS -->
+        <div class="videos-grid" style="margin-bottom:30px;">
+
+            <div class="video-card">
+                <div class="video-info">
+                    <h3>Total Videos</h3>
+                    <h2 id="totalVideos">0</h2>
+                </div>
+            </div>
+
+            <div class="video-card">
+                <div class="video-info">
+                    <h3>Total Watch Clicks</h3>
+                    <h2 id="totalClicks">0</h2>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ADD VIDEO FORM -->
+        <div class="video-form">
+
+            <h3 id="formHeading">➕ Add New Video</h3>
+
+            <form id="videoForm">
+
+                <input
+                    type="text"
+                    id="videoTitle"
+                    placeholder="Video Title"
+                    required
+                >
+
+                <input
+                    type="url"
+                    id="thumbnailUrl"
+                    placeholder="Thumbnail / Photo URL (Optional)"
+                >
+
+                <input
+                    type="url"
+                    id="flezenLink"
+                    placeholder="Flezen Video Link"
+                    required
+                >
+
+                <textarea
+                    id="videoDescription"
+                    placeholder="Video Description (Optional)"
+                ></textarea>
+
+                <div class="form-actions">
+
+                    <button
+                        type="submit"
+                        id="saveVideoBtn"
+                        class="btn btn-success"
+                    >
+                        Save Video
+                    </button>
+
+                    <button
+                        type="button"
+                        id="cancelEditBtn"
+                        class="btn btn-secondary"
+                        style="display:none;"
+                    >
+                        Cancel
+                    </button>
+
+                </div>
+
+            </form>
+
+            <p id="videoMessage" style="margin-top:15px;"></p>
+
+        </div>
+
+        <!-- VIDEO LIST -->
+        <section style="margin-top:35px;">
+
+            <h2>📹 Manage Videos</h2>
+
+            <div id="adminVideosContainer" class="videos-grid">
+                <p class="loading">⏳ वीडियो लोड हो रहे हैं...</p>
+            </div>
+
+        </section>
+
+    </section>
+
+</main>
+
+<footer>
+    © 2026 Chuddnjaan - Admin Panel
+</footer>
+
+<script src="admin.js"></script>
+
+</body>
+</html>
