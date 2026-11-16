@@ -105,10 +105,7 @@ function showDashboard() {
 // =====================================
 async function logout() {
     try {
-        await apiRequest("/api/logout", {
-            method: "POST",
-            body: JSON.stringify({})
-        });
+        await apiRequest("/api/logout", { method: "POST", body: JSON.stringify({}) });
     } catch (error) {
         console.log("Logout:", error.message);
     }
@@ -137,7 +134,7 @@ async function loadAdminVideos() {
             return `
                 <div class="video-card">
                     ${ video.thumbnail_url
-                        ? `<img class="video-thumbnail" src="${escapeHTML(video.thumbnail_url)}" alt="Thumbnail">`
+                        ? `<img class="video-thumbnail" src="${escapeHTML(video.thumbnail_url)}" alt="Thumbnail" loading="lazy">`
                         : `<div class="video-thumbnail" style="display:flex;align-items:center;justify-content:center;font-size:40px;">🎬</div>`
                     }
                     <div class="video-info">
@@ -164,7 +161,7 @@ async function saveVideo(event) {
     event.preventDefault();
     const video = {
         title: $("videoTitle").value.trim(),
-        thumbnail_url: $("thumbnailUrl").value.trim() || null, // यहाँ गैलरी से अपलोड हुआ URL आता है
+        thumbnail_url: $("thumbnailUrl").value.trim() || null,
         flezen_link: $("flezenLink").value.trim(),
         description: $("videoDescription").value.trim() || null
     };
@@ -215,7 +212,6 @@ async function editVideo(id) {
         $("flezenLink").value = video.flezen_link || "";
         $("videoDescription").value = video.description || "";
         
-        // पुरानी थंबनेल दिखाएँ
         $("thumbnailUrl").value = video.thumbnail_url || "";
         if(video.thumbnail_url) {
             $("thumbnailPreview").src = video.thumbnail_url;
@@ -237,13 +233,9 @@ async function editVideo(id) {
 // DELETE VIDEO
 // =====================================
 async function deleteVideo(id) {
-    if (!confirm("क्या आप यह वीडियो डिलीट करना चाहते हैं?")) {
-        return;
-    }
+    if (!confirm("क्या आप यह वीडियो डिलीट करना चाहते हैं?")) return;
     try {
-        await apiRequest(`/api/admin/videos/${id}`, {
-            method: "DELETE"
-        });
+        await apiRequest(`/api/admin/videos/${id}`, { method: "DELETE" });
         alert("✅ वीडियो डिलीट हो गया।");
         await loadAdminVideos();
     } catch (error) {
@@ -261,7 +253,6 @@ function resetForm() {
     $("saveVideoBtn").textContent = "Save Video";
     $("cancelEditBtn").style.display = "none";
     
-    // प्रीव्यू और स्टेटस साफ करें
     const preview = $("thumbnailPreview");
     const status = $("uploadStatus");
     if(preview) { preview.style.display = 'none'; preview.src = ''; }
@@ -269,7 +260,49 @@ function resetForm() {
 }
 
 // =====================================
-// THUMBNAIL UPLOAD LOGIC (गैलरी से)
+// 🖼️ IMAGE COMPRESSION HELPER FUNCTION
+// =====================================
+function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = event => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+
+                // अगर फोटो बहुत बड़ी है, तो उसका साइज़ कम करें
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = Math.round((width * maxHeight) / height);
+                        height = maxHeight;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // कंप्रेस करके Blob (फाइल) बनाएँ
+                canvas.toBlob(blob => resolve(blob), 'image/jpeg', quality);
+            };
+            img.onerror = error => reject(error);
+        };
+        reader.onerror = error => reject(error);
+    });
+}
+
+// =====================================
+// THUMBNAIL UPLOAD LOGIC (ऑटो-कंप्रेस के साथ)
 // =====================================
 document.addEventListener("DOMContentLoaded", () => {
     const chooseThumbBtn = $("chooseThumbBtn");
@@ -284,32 +317,43 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         thumbnailFile.addEventListener("change", async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+            const originalFile = e.target.files[0];
+            if (!originalFile) return;
 
-            thumbnailPreview.src = URL.createObjectURL(file);
+            // प्रीव्यू दिखाएँ
+            thumbnailPreview.src = URL.createObjectURL(originalFile);
             thumbnailPreview.style.display = 'block';
-            uploadStatus.textContent = '⏳ फोटो अपलोड हो रही है...';
+            
+            uploadStatus.textContent = '⏳ फोटो कंप्रेस और अपलोड हो रही है...';
             uploadStatus.style.color = '#f39c12';
             chooseThumbBtn.disabled = true;
 
             try {
+                // 1. फोटो को कंप्रेस करें (अधिकतम 800px, 70% क्वालिटी)
+                const compressedBlob = await compressImage(originalFile);
+                
+                // 2. नई कंप्रेस्ड फाइल बनाएँ
+                const compressedFile = new File([compressedBlob], originalFile.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                    type: 'image/jpeg',
+                    lastModified: Date.now()
+                });
+
+                // 3. Cloudflare Worker पर भेजें
                 const formData = new FormData();
-                formData.append('thumbnail', file);
+                formData.append('thumbnail', compressedFile);
 
                 const response = await fetch(`${API_URL}/api/admin/upload`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${adminToken}`
-                    },
+                    headers: { 'Authorization': `Bearer ${adminToken}` },
                     body: formData
                 });
 
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Upload failed');
 
+                // 4. URL सेव करें
                 thumbnailUrlInput.value = data.url;
-                uploadStatus.textContent = '✅ फोटो सफलतापूर्वक अपलोड हो गई!';
+                uploadStatus.textContent = '✅ फोटो कंप्रेस होकर सफलतापूर्वक अपलोड हो गई!';
                 uploadStatus.style.color = '#2ecc71';
 
             } catch (error) {
