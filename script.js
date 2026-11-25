@@ -28,9 +28,10 @@ async function loadVideos() {
 
     try { 
         const response = await fetch(`${API_URL}/api/videos`); 
-        if (!response.ok) { 
-            throw new Error("वीडियो सर्वर से जवाब नहीं मिला।"); 
-        } 
+        if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText}`);
+}
         
         const result = await response.json(); 
         
